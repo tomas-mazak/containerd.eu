@@ -1,53 +1,12 @@
-baseURL = "http://containerd.eu/"
+baseURL = "https://containerd.eu/"
 languageCode = "en-us"
 title = "ContaiNerd"
-theme = "minimal"
-
-#disqusShortname = "username" # delete this to disable disqus comments
-#googleAnalytics = ""
+copyright = "&copy; All lefts reversed"
+theme = "hugo_theme_pickles"
 
 [params]
-    author = "Tomas Mazak"
-    description = "Lazy engineer's blog"
-    githubUsername = "#"
-    accent = "red"
-    showBorder = true
-    backgroundColor = "white"
-    font = "Raleway" # should match the name on Google Fonts!
-    highlight = true
-    highlightStyle = "solarized-dark"
-    highlightLanguages = ["shell", "python", "go", "yaml", "dosini"]
-
-[[menu.main]]
-    url = "/"
-    name = "Home"
-    weight = 1
-
-[[menu.main]]
-    url = "/posts/"
-    name = "Posts"
-    weight = 2
-
-#[[menu.main]]
-#    url = "/project/"
-#    name = "Projects"
-#    weight = 3
-
-# Social icons to be shown on the right-hand side of the navigation bar
-# The "name" field should match the name of the icon to be used
-# The list of available icons can be found at http://fontawesome.io/icons/
-
-[[menu.icon]]
-    url = "mailto:info@containerd.eu"
-    name = "envelope-o"
-    weight = 1
-
-[[menu.icon]]
-    url = "https://github.com/tomas-mazak/"
-    name = "github"
-    weight = 2
-
-[[menu.icon]]
-    url = "https://www.linkedin.com/in/tom%C3%A1%C5%A1-maz%C3%A1k-80185ab4/"
-    name = "linkedin"
-    weight = 3
+  paginate = 10
+  github = "tomas-mazak"
+  linkedin = "tomas-mazak"
+  disqus = ""
+  subtitle = "Lazy engineer's blog"

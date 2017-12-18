@@ -1,13 +1,27 @@
 ---
-title: Kubernetes In GNS3
+title: Kubernetes and Calico In GNS3
 date: 2017-12-12T07:50:38Z
-draft: true
 ---
 
-If you consider deploying a Kubernetes cluster on-premise, the networking seems to be quite 
-a challenge, especially if interaction between Kubernetes and the network will be needed (e.g. 
-BGP peering). Fortunately, it's not necessary to start with configuring boxes right away, popular 
-network emulator, GNS3, can be used to build and test reference architectures. Let's give it a try.
+Designing an on-premise Kubernetes cluster can be quite a challenge, especially as it needs to fit
+into the existing network topology. There are plenty of 
+[CNI plugins](https://kubernetes.io/docs/concepts/cluster-administration/network-plugins/#cni)
+available for the job and they might support different modes and topologies. To get familiar with
+them, one might need a testing environment and the 
+[minikube](https://github.com/kubernetes/minikube#what-is-minikube) won't suffice anymore. You 
+might choose to run Kube nodes as multiple VMs, perhaps using Vagrant, but how to simulate the 
+physical network they are plugged into?
+
+GNS3 is a network simulator well known to the networking folks as they use it to simulate their 
+complex environments full of Cisco boxes. But GNS3 is actually very versatile, it can run Qemu VMs
+and even docker containers that we can connect using virtual ethernet cables and organize in neat
+network diagrams. Fully working, 4 nodes Kubernetes cluster connected to a "complex" virtual 
+network might look like this in GNS3:
+
+![Kubernetes Topology example](/pictures/topology_example.png)
+
+Let's see how to build a cluster like this on a Linux worstation, using 
+[Calico](https://www.projectcalico.org/) as the networking solution.
 
 ### Installing prerequisites
 
@@ -27,7 +41,7 @@ sudo docker run hello-world
 
 Also, we want to connect our GNS3 virtual environment to the host machine, so that we can reach our
 Kubernetes cluster over the network and the machines in the cluster can reach Internet. For this,
-we create a configure a bridge interface gnsbr0 and dedicate a subnet range to our project:
+we create and configure a bridge interface gnsbr0 and dedicate a subnet range to our project:
 
 ```shell
 brctl addbr gnsbr0
@@ -43,7 +57,8 @@ Now let's start GNS3. A dialog appears asking us to create a new project. Let's 
 call our project 'kubernetes'.
 
 Before we start creating our infrastructure, we need to create two appliance templates. First, we
-add a lightweight router to simulate network devices:
+add a lightweight router to simulate network devices. Click on "New appliance template" and choose
+"Add a Docker container".
 
 ![New Appliance Template](/pictures/new_appliance_template.png)
 
@@ -51,18 +66,20 @@ Select New Image and type `wigwam/bird`. Name it `bird-docker`. Give it 3 adapte
 defaults all the way to Finish. The new device should appear in the left panel. Right-click on it
 and choose Configure Template. Change category to router and the symbol to the router icon.
 
-Download a Ubuntu image from here and unpack it. Create a new appliance template, this time select
-Add a Qemu virtual machine. Name it ubuntu, give it 1200MB RAM and choose New Image and select the
-downloaded Ubuntu image and Finish. Right-click on it and choose Configure Template. Change the 
-symbol to the server icon.
+Download a Ubuntu image from [here](https://github.com/tomas-mazak/ubuntu-qemu/releases/latest) 
+and unpack it. Create a new appliance template, this time select "Add a Qemu virtual machine". 
+Name it `ubuntu`, give it 1200MB RAM and choose "New Image" and select the downloaded Ubuntu image 
+and Finish. Right-click on it and choose "Configure Template". Change the symbol to the server 
+icon.
 
 You can customize and build both images yourself, just clone these repos: 
-`https://github.com/tomas-mazak/bird-docker`, `https://github.com/tomas-mazak/ubuntu-qemu` and 
-follow instructions.
+  * https://github.com/tomas-mazak/bird-docker
+  * https://github.com/tomas-mazak/ubuntu-qemu 
+and follow instructions.
 
 ### Set up the topology
 
-Now that we have necessary appliances ready, let's start creating network for our cluster. We 
+Now that we have appliance templates ready, let's start creating network for our cluster. We 
 simulate two separate L3 subnets several hops from each other.
 
 Let's drag a `bird-docker` template to the workspace. Name it `spine`. Right-click it and choose 
@@ -96,7 +113,7 @@ devices. Now the workspace should look like this:
 
 Let's verify we can ping the router from the host machine:
 ```
-tomas@arkham:~$ ping 172.31.0.2
+$ ping 172.31.0.2
 PING 172.31.0.2 (172.31.0.2) 56(84) bytes of data.
 64 bytes from 172.31.0.2: icmp_seq=1 ttl=64 time=0.363 ms
 64 bytes from 172.31.0.2: icmp_seq=2 ttl=64 time=0.279 ms
@@ -202,15 +219,16 @@ tomas@arkham:~$ ssh-copy-id root@172.31.4.12
 
 ### Install Kubernetes
 
-We will install a simple kubernetes cluster with one master using kubespray. Let's prepare 
-environment (might differ if you don't use Ubuntu):
+We will install a simple kubernetes cluster with one master using 
+[kubespray](https://github.com/kubernetes-incubator/kubespray). Let's prepare the environment 
+(might differ if you don't use Ubuntu):
 
 ```
-tomas@arkham:~$ sudo apt-get install virtualenvwrapper
-tomas@arkham:~$ mkvirtualenv kubespray
-(kubespray) tomas@arkham:~$ pip install ansible netaddr
-(kubespray) tomas@arkham:~$ git clone https://github.com/kubernetes-incubator/kubespray.git
-(kubespray) tomas@arkham:~$ cd kubespray/
+$ sudo apt-get install virtualenvwrapper
+$ mkvirtualenv kubespray
+(kubespray) $ pip install ansible netaddr
+(kubespray) $ git clone https://github.com/kubernetes-incubator/kubespray.git
+(kubespray) $ cd kubespray/
 ```
  
 Now we need to prepare inventory file. Save following as `inventory/inventory.cfg`:
@@ -259,7 +277,13 @@ kube_pods_subnet: 172.31.128.0/18
 Now we are ready to run ansible to deploy the cluster:
 
 ```
-(kubespray) tomas@arkham:~/kubespray$ ansible-playbook -i inventory/inventory.cfg cluster.yml -b -v -u root
+(kubespray) $ ansible-playbook -i inventory/inventory.cfg cluster.yml -b -v -u root
 ```
 
-Yeey, cluster up and running!
+Yeey, cluster up and running! If you find a mistake in this blog, kindly 
+[raise an issue](https://github.com/tomas-mazak/containerd.eu/issues).
+
+In the next blog, I will look into BGP peering between Kubernetes nodes (using Calico) and 
+"physical" routers, using popular 
+[AS-per-rack](https://docs.projectcalico.org/v2.6/reference/private-cloud/l3-interconnect-fabric#the-as-per-rack-model) 
+topology.
