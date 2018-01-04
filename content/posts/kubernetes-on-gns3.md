@@ -72,10 +72,12 @@ Name it `ubuntu`, give it 1200MB RAM and choose "New Image" and select the downl
 and Finish. Right-click on it and choose "Configure Template". Change the symbol to the server 
 icon.
 
-You can customize and build both images yourself, just clone these repos: 
+You can customize and build both images yourself, just clone these repos:
+
   * https://github.com/tomas-mazak/bird-docker
   * https://github.com/tomas-mazak/ubuntu-qemu 
-and follow instructions.
+
+...and follow the instructions.
 
 ### Set up the topology
 
